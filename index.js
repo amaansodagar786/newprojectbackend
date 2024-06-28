@@ -22,16 +22,28 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Append the file extension
+        cb(null, Date.now() + path.extname(file.originalname));
     }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 1024 * 1024 * 10, // 10 MB limit example
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Unsupported file type'), false);
+        }
+    }
+});
 
 mongoose
     .connect(
         "mongodb+srv://sodagaramaan786:HbiVzsmAJNAm4kg4@cluster0.576stzr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-        { useNewUrlParser: true, useUnifiedTopology: true }
+       
     )
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
@@ -97,7 +109,14 @@ app.post("/contact", async (req, res) => {
     }
   });
 
-app.post("/career", upload.single('resume'), async (req, res) => {
+  app.post("/career", upload.single('resume'), async (req, res) => {
+    // Handle Multer upload errors
+    if (req.fileValidationError) {
+        return res.status(400).json({ success: false, error: req.fileValidationError });
+    } else if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
     const { name, phone, email, position, message } = req.body;
     const resume = req.file.filename;
 
