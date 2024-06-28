@@ -167,10 +167,10 @@ app.get("/download/:filename", (req, res) => {
     });
 });
 
-app.get('/hello', (req, res) => {
+app.get('/', (req, res) => {
     res.send('Hello World!')
     })
 
-app.listen(3035, () => {
+app.listen(3037, () => {
     console.log('Server connected');
 });
