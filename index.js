@@ -5,11 +5,21 @@ const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+
+
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+
+
+app.use(cors({
+    origin: 'https://newproject-xi-eight.vercel.app', // replace with your frontend's domain
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization'
+}));
+app.use(bodyParser.json());
+
+
 
 
 const uploadDir = 'uploads';
@@ -136,7 +146,8 @@ app.post("/contact", async (req, res) => {
 
 
 
-  app.post("/career", upload.single('resume'), async (req, res) => {
+// Server-side (Express)
+app.post("/career", upload.single('resume'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
@@ -199,9 +210,10 @@ app.post("/contact", async (req, res) => {
         res.json({ success: true, message: 'Application submitted successfully' });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ success: false, error: 'Failed to submit application' });
+        res.status(500).json({ success: false, error: 'Failed to submit application', details: error.message });
     }
 });
+
 
 // GET endpoint to fetch all applicants
 
