@@ -103,7 +103,7 @@ app.post("/contact", async (req, res) => {
       // Email to the owner
       const ownerMailOptions = {
         from: process.env.EMAIL_USER,
-        to: process.env.OWNER_EMAIL, // The owner's email address from environment variable
+        to: process.env.EMAIL_USER, // The owner's email address from environment variable
         subject: 'New Contact Form Submission',
         html: `
           <p>You have a new contact form submission:</p>
@@ -119,7 +119,7 @@ app.post("/contact", async (req, res) => {
       const clientInfo = await transporter.sendMail(clientMailOptions);
       console.log('Client email sent:', clientInfo.response);
   
-      // Send email to the owner
+    //   Send email to the owner
       const ownerInfo = await transporter.sendMail(ownerMailOptions);
       console.log('Owner email sent:', ownerInfo.response);
   
@@ -134,7 +134,7 @@ app.post("/contact", async (req, res) => {
 
 
 
-  
+
   app.post("/career", upload.single('resume'), async (req, res) => {
     // Handle Multer upload errors
     if (req.fileValidationError) {
