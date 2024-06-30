@@ -11,6 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
@@ -136,10 +137,7 @@ app.post("/contact", async (req, res) => {
 
 
   app.post("/career", upload.single('resume'), async (req, res) => {
-    // Handle Multer upload errors
-    if (req.fileValidationError) {
-        return res.status(400).json({ success: false, error: req.fileValidationError });
-    } else if (!req.file) {
+    if (!req.file) {
         return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
@@ -149,7 +147,6 @@ app.post("/contact", async (req, res) => {
     try {
         const result = await Application.create({ name, phone, email, position, message, resume });
 
-        // Sending email confirmation
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -158,7 +155,8 @@ app.post("/contact", async (req, res) => {
             },
         });
 
-        const mailOptions = {
+        // Email to the applicant
+        const applicantMailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
             subject: 'Application Received',
@@ -169,8 +167,34 @@ app.post("/contact", async (req, res) => {
             `,
         };
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent:', info.response);
+        // Email to the owner with resume attached
+        const ownerMailOptions = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER,
+            subject: 'New Career Application',
+            html: `
+                <p>You have a new career application:</p>
+                <p><strong>Name:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Phone:</strong> ${phone}</p>
+                <p><strong>Position:</strong> ${position}</p>
+                <p><strong>Message:</strong> ${message}</p>
+            `,
+            attachments: [
+                {
+                    filename: req.file.originalname,
+                    path: path.join(__dirname, 'uploads', resume),
+                }
+            ],
+        };
+
+        // Send email to the applicant
+        const applicantInfo = await transporter.sendMail(applicantMailOptions);
+        console.log('Applicant email sent:', applicantInfo.response);
+
+        // Send email to the owner
+        const ownerInfo = await transporter.sendMail(ownerMailOptions);
+        console.log('Owner email sent:', ownerInfo.response);
 
         res.json({ success: true, message: 'Application submitted successfully' });
     } catch (error) {
@@ -180,37 +204,7 @@ app.post("/contact", async (req, res) => {
 });
 
 // GET endpoint to fetch all applicants
-app.get('/applicants', async (req, res) => {
-    try {
-        const applicants = await Application.find({});
-        res.json(applicants);
-    } catch (error) {
-        console.error('Error fetching applicants:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch applicants' });
-    }
-});
 
-// GET endpoint to download resume
-app.get("/download/:filename", (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'uploads', filename);
-
-    // Check if the file exists
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            console.error('File not found:', err);
-            return res.status(404).json({ success: false, error: 'File not found' });
-        }
-
-        // Provide the file for download
-        res.download(filePath, (err) => {
-            if (err) {
-                console.error('Download error:', err);
-                res.status(500).json({ success: false, error: 'Unable to download file' });
-            }
-        });
-    });
-});
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
