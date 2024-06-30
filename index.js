@@ -74,7 +74,7 @@ const Application = mongoose.model("CareerApplication", ApplicationSchema);
 // Routes
 app.post("/contact", async (req, res) => {
     const { name, email, mobile, service, message } = req.body;
-    console.log(name + email + mobile + service + message )
+    console.log(name + email + mobile + service + message);
   
     try {
       const result = await User.create({ name, email, mobile, service, message });
@@ -87,7 +87,8 @@ app.post("/contact", async (req, res) => {
         },
       });
   
-      const mailOptions = {
+      // Email to the client/user
+      const clientMailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Welcome to HR web',
@@ -99,8 +100,28 @@ app.post("/contact", async (req, res) => {
         `,
       };
   
-      const info = await transporter.sendMail(mailOptions);
-      console.log('Email sent:', info.response);
+      // Email to the owner
+      const ownerMailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.OWNER_EMAIL, // The owner's email address from environment variable
+        subject: 'New Contact Form Submission',
+        html: `
+          <p>You have a new contact form submission:</p>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Mobile:</strong> ${mobile}</p>
+          <p><strong>Service:</strong> ${service}</p>
+          <p><strong>Message:</strong> ${message}</p>
+        `,
+      };
+  
+      // Send email to the client/user
+      const clientInfo = await transporter.sendMail(clientMailOptions);
+      console.log('Client email sent:', clientInfo.response);
+  
+      // Send email to the owner
+      const ownerInfo = await transporter.sendMail(ownerMailOptions);
+      console.log('Owner email sent:', ownerInfo.response);
   
       res.json({ success: true, message: 'Added to contact list' });
     } catch (error) {
@@ -109,6 +130,11 @@ app.post("/contact", async (req, res) => {
     }
   });
 
+
+
+
+
+  
   app.post("/career", upload.single('resume'), async (req, res) => {
     // Handle Multer upload errors
     if (req.fileValidationError) {
