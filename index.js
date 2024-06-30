@@ -4,23 +4,18 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-const app = express();
-
-
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
+const app = express();
 
 app.use(cors({
     origin: 'https://newproject-xi-eight.vercel.app', // replace with your frontend's domain
-    methods: 'GET,POST,PUT,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization'
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(bodyParser.json());
-
-
-
 
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
@@ -30,7 +25,7 @@ if (!fs.existsSync(uploadDir)) {
 // Multer setup for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
@@ -54,23 +49,24 @@ const upload = multer({
 mongoose
     .connect(
         "mongodb+srv://sodagaramaan786:HbiVzsmAJNAm4kg4@cluster0.576stzr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-       
+        {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        }
     )
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
 
-// Schema for HR Contact Data
 const ContactSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     mobile: { type: String, required: true },
     service: { type: String, required: true },
     message: { type: String, required: true },
-  });
-  
-  const User = mongoose.model("HRContactData", ContactSchema);
+});
 
-// Schema for Career Application
+const User = mongoose.model("HRContactData", ContactSchema);
+
 const ApplicationSchema = new mongoose.Schema({
     name: { type: String, required: true },
     phone: { type: String, required: true },
@@ -82,72 +78,69 @@ const ApplicationSchema = new mongoose.Schema({
 
 const Application = mongoose.model("CareerApplication", ApplicationSchema);
 
-// Routes
 app.post("/contact", async (req, res) => {
     const { name, email, mobile, service, message } = req.body;
-    console.log(name + email + mobile + service + message);
-  
+    console.log(name, email, mobile, service, message);
+
     try {
-      const result = await User.create({ name, email, mobile, service, message });
-  
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-  
-      // Email to the client/user
-      const clientMailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: 'Welcome to HR web',
-        html: `
-          <p>Hello ${name}</p>
-          <p>Thank you for contacting us</p>
-          <p>Best regards,</p>
-          <p>Team NAOH</p>
-        `,
-      };
-  
-      // Email to the owner
-      const ownerMailOptions = {
-        from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_USER, // The owner's email address from environment variable
-        subject: 'New Contact Form Submission',
-        html: `
-          <p>You have a new contact form submission:</p>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Mobile:</strong> ${mobile}</p>
-          <p><strong>Service:</strong> ${service}</p>
-          <p><strong>Message:</strong> ${message}</p>
-        `,
-      };
-  
-      // Send email to the client/user
-      const clientInfo = await transporter.sendMail(clientMailOptions);
-      console.log('Client email sent:', clientInfo.response);
-  
-    //   Send email to the owner
-      const ownerInfo = await transporter.sendMail(ownerMailOptions);
-      console.log('Owner email sent:', ownerInfo.response);
-  
-      res.json({ success: true, message: 'Added to contact list' });
+        const result = await User.create({ name, email, mobile, service, message });
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        // Email to the client/user
+        const clientMailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Welcome to HR web',
+            html: `
+                <p>Hello ${name}</p>
+                <p>Thank you for contacting us</p>
+                <p>Best regards,</p>
+                <p>Team NAOH</p>
+            `,
+        };
+
+        // Email to the owner
+        const ownerMailOptions = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER, // The owner's email address from environment variable
+            subject: 'New Contact Form Submission',
+            html: `
+                <p>You have a new contact form submission:</p>
+                <p><strong>Name:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Mobile:</strong> ${mobile}</p>
+                <p><strong>Service:</strong> ${service}</p>
+                <p><strong>Message:</strong> ${message}</p>
+            `,
+        };
+
+        // Send email to the client/user
+        const clientInfo = await transporter.sendMail(clientMailOptions);
+        console.log('Client email sent:', clientInfo.response);
+
+        // Send email to the owner
+        const ownerInfo = await transporter.sendMail(ownerMailOptions);
+        console.log('Owner email sent:', ownerInfo.response);
+
+        res.json({ success: true, message: 'Added to contact list' });
     } catch (error) {
-      console.error('Error adding to contact list:', error);
-      res.status(500).json({ success: false, error: 'Failed to add to contact list' });
+        console.error('Error adding to contact list:', error);
+        res.status(500).json({ success: false, error: 'Failed to add to contact list' });
     }
-  });
+});
 
-
-
-
-
-
-// Server-side (Express)
 app.post("/career", upload.single('resume'), async (req, res) => {
+    console.log('Received a request to /career endpoint');
+    console.log('Request body:', req.body);
+    console.log('Uploaded file:', req.file);
+
     if (!req.file) {
         return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
@@ -214,13 +207,9 @@ app.post("/career", upload.single('resume'), async (req, res) => {
     }
 });
 
-
-// GET endpoint to fetch all applicants
-
-
 app.get('/', (req, res) => {
-    res.send('Hello World!')
-    })
+    res.send('Hello World!');
+});
 
 app.listen(3037, () => {
     console.log('Server connected');
