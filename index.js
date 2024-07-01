@@ -22,29 +22,29 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
 
-// Multer setup for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
+// // Multer setup for file uploads
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, uploadDir);
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + path.extname(file.originalname));
+//     }
+// });
 
-const upload = multer({
-    storage,
-    limits: {
-        fileSize: 1024 * 1024 * 10, // 10 MB limit example
-    },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
-            cb(null, true);
-        } else {
-            cb(new Error('Unsupported file type'), false);
-        }
-    }
-});
+// const upload = multer({
+//     storage,
+//     limits: {
+//         fileSize: 1024 * 1024 * 10, // 10 MB limit example
+//     },
+//     fileFilter: (req, file, cb) => {
+//         if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+//             cb(null, true);
+//         } else {
+//             cb(new Error('Unsupported file type'), false);
+//         }
+//     }
+// });
 
 mongoose
     .connect(
@@ -73,7 +73,7 @@ const ApplicationSchema = new mongoose.Schema({
     email: { type: String, required: true },
     position: { type: String, required: true },
     message: { type: String },
-    resume: { type: String, required: true }
+    // resume: { type: String, required: true } 
 });
 
 const Application = mongoose.model("CareerApplication", ApplicationSchema);
@@ -136,20 +136,15 @@ app.post("/contact", async (req, res) => {
     }
 });
 
-app.post("/career", upload.single('resume'), async (req, res) => {
+app.post("/career", async (req, res) => {
     console.log('Received a request to /career endpoint');
     console.log('Request body:', req.body);
-    console.log('Uploaded file:', req.file);
-
-    if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No file uploaded' });
-    }
+    // console.log('Uploaded file:', req.file); // Removed file logging
 
     const { name, phone, email, position, message } = req.body;
-    const resume = req.file.filename;
 
     try {
-        const result = await Application.create({ name, phone, email, position, message, resume });
+        const result = await Application.create({ name, phone, email, position, message });
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -171,7 +166,7 @@ app.post("/career", upload.single('resume'), async (req, res) => {
             `,
         };
 
-        // Email to the owner with resume attached
+        // Email to the owner
         const ownerMailOptions = {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_USER,
@@ -184,12 +179,7 @@ app.post("/career", upload.single('resume'), async (req, res) => {
                 <p><strong>Position:</strong> ${position}</p>
                 <p><strong>Message:</strong> ${message}</p>
             `,
-            attachments: [
-                {
-                    filename: req.file.originalname,
-                    path: path.join(__dirname, 'uploads', resume),
-                }
-            ],
+            // Removed attachments
         };
 
         // Send email to the applicant
