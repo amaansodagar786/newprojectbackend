@@ -44,15 +44,15 @@ const upload = multer({
             cb(new Error('Unsupported file type'), false);
         }
     }
-});
+}).single('resume'); 
 
 mongoose
     .connect(
         "mongodb+srv://sodagaramaan786:HbiVzsmAJNAm4kg4@cluster0.576stzr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-        {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        }
+        // {
+        //     useNewUrlParser: true,
+        //     useUnifiedTopology: true,
+        // }
     )
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
@@ -136,75 +136,32 @@ app.post("/contact", async (req, res) => {
     }
 });
 
-app.post("/career", upload.single('resume'), async (req, res) => {
-    console.log('Received a request to /career endpoint');
-    console.log('Request body:', req.body);
-    console.log('Uploaded file:', req.file);
 
-    if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No file uploaded' });
-    }
+app.post("/career", (req, res) => {
+    upload(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+            return res.status(500).json({ success: false, error: err.message });
+        } else if (err) {
+            return res.status(500).json({ success: false, error: err.message });
+        }
 
-    const { name, phone, email, position, message } = req.body;
-    const resume = req.file.filename;
+        // File not received
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        }
 
-    try {
-        const result = await Application.create({ name, phone, email, position, message, resume });
+        const { name, phone, email, position, message } = req.body;
+        const resume = req.file.filename;
 
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        // Email to the applicant
-        const applicantMailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Application Received',
-            html: `
-                <p>Hello ${name},</p>
-                <p>Thank you for applying for the ${position} position. We have received your application and will get back to you soon.</p>
-                <p>Best regards,<br>Team NAOH</p>
-            `,
-        };
-
-        // Email to the owner with resume attached
-        const ownerMailOptions = {
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER,
-            subject: 'New Career Application',
-            html: `
-                <p>You have a new career application:</p>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Phone:</strong> ${phone}</p>
-                <p><strong>Position:</strong> ${position}</p>
-                <p><strong>Message:</strong> ${message}</p>
-            `,
-            attachments: [
-                {
-                    filename: req.file.originalname,
-                    path: path.join(__dirname, 'uploads', resume),
-                }
-            ],
-        };
-
-        // Send email to the applicant
-        const applicantInfo = await transporter.sendMail(applicantMailOptions);
-        console.log('Applicant email sent:', applicantInfo.response);
-
-        // Send email to the owner
-        const ownerInfo = await transporter.sendMail(ownerMailOptions);
-        console.log('Owner email sent:', ownerInfo.response);
-
-        res.json({ success: true, message: 'Application submitted successfully' });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ success: false, error: 'Failed to submit application', details: error.message });
-    }
+        Application.create({ name, phone, email, position, message, resume })
+            .then(result => {
+                // Email sending logic here
+                res.json({ success: true, message: 'Application submitted successfully' });
+            })
+            .catch(error => {
+                res.status(500).json({ success: false, error: 'Failed to submit application', details: error.message });
+            });
+    });
 });
 
 app.get('/', (req, res) => {
