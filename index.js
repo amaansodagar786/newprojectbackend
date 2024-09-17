@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const app = express();
 
+// app.use(cors());
 app.use(cors({
     origin: 'https://newproject-xi-eight.vercel.app', // replace with your frontend's domain
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -49,10 +50,6 @@ const upload = multer({
 mongoose
     .connect(
         "mongodb+srv://sodagaramaan786:HbiVzsmAJNAm4kg4@cluster0.576stzr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-        // {
-        //     useNewUrlParser: true,
-        //     useUnifiedTopology: true,
-        // }
     )
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
@@ -73,7 +70,7 @@ const ApplicationSchema = new mongoose.Schema({
     email: { type: String, required: true },
     position: { type: String, required: true },
     message: { type: String },
-    resume: { type: String, required: true } 
+    resume: { type: String } 
 });
 
 const Application = mongoose.model("CareerApplication", ApplicationSchema);
@@ -145,13 +142,8 @@ app.post("/career", (req, res) => {
             return res.status(500).json({ success: false, error: err.message });
         }
 
-        // File not received
-        if (!req.file) {
-            return res.status(400).json({ success: false, error: 'No file uploaded' });
-        }
-
         const { name, phone, email, position, message } = req.body;
-        const resume = req.file.filename;
+        const resume = req.file ? req.file.filename : null;
 
         try {
             const result = await Application.create({ name, phone, email, position, message, resume });
@@ -176,7 +168,7 @@ app.post("/career", (req, res) => {
                 `,
             };
 
-            // Email to the owner with resume attached
+            // Email to the owner with resume attached if available
             const ownerMailOptions = {
                 from: process.env.EMAIL_USER,
                 to: process.env.EMAIL_USER,
@@ -189,12 +181,12 @@ app.post("/career", (req, res) => {
                     <p><strong>Position:</strong> ${position}</p>
                     <p><strong>Message:</strong> ${message}</p>
                 `,
-                attachments: [
+                attachments: resume ? [
                     {
                         filename: req.file.originalname,
                         path: path.join(__dirname, 'uploads', resume),
                     }
-                ],
+                ] : [],
             };
 
             // Send email to the applicant
