@@ -52,7 +52,7 @@ mongoose
         "mongodb+srv://sodagaramaan786:HbiVzsmAJNAm4kg4@cluster0.576stzr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
     )
     .then(() => console.log("MongoDB connected"))
-    .catch((err) => console.log("MongoDB connection error:", err));
+    .catch((err) => console.log("MongoDB connectionn error:", err));
 
 const ContactSchema = new mongoose.Schema({
     name: { type: String, required: true },
